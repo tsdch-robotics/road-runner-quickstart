@@ -17,21 +17,17 @@ import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 
 import java.util.ArrayList;
 
-@Autonomous
-public class RightCircuitAuto extends LinearOpMode
-{
+@Autonomous(group = "drive")
+public class RightCircuitAuto extends LinearOpMode {
     SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-    OpenCvCamera camera;
-    AprilTagDetectionPipeline aprilTagDetectionPipeline;
+    //OpenCvCamera camera;
+    //AprilTagDetectionPipeline aprilTagDetectionPipeline;
 
     static final double FEET_PER_METER = 3.28084;
 
@@ -52,18 +48,18 @@ public class RightCircuitAuto extends LinearOpMode
     int MIDDLE = 2;
     int RIGHT = 3;
 
-    static final double     COUNTS_PER_MOTOR_REV    = 537.7 ;    // eg: TETRIX Motor Encoder
-    static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // No External Gearing.
-    static final double     WHEEL_DIAMETER_INCHES   = 3.78 ;     // For figuring circumference
-    static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
+    static final double COUNTS_PER_MOTOR_REV = 537.7;    // eg: TETRIX Motor Encoder
+    static final double DRIVE_GEAR_REDUCTION = 1.0;     // No External Gearing.
+    static final double WHEEL_DIAMETER_INCHES = 3.78;     // For figuring circumference
+    static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.5);
 
-    //Auto motor and servo definitions
+    /*
     private DcMotorEx frontLeft = null;
     private DcMotorEx frontRight = null;
     private DcMotorEx backLeft = null;
     private DcMotorEx backRight = null;
-
+*/
     private DcMotorEx armVert = null;
 
     private Servo leftHand = null;
@@ -83,23 +79,24 @@ public class RightCircuitAuto extends LinearOpMode
     AprilTagDetection tagOfInterest = null;
 
     @Override
-    public void runOpMode()
-    {
-        //Set up motors and servos
+    public void runOpMode() throws InterruptedException {
+        SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+
+        Pose2d startPose = new Pose2d(36, -64, Math.toRadians(0));
+        drive.setPoseEstimate(startPose);
+        /*
         frontLeft  = hardwareMap.get(DcMotorEx.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotorEx.class, "frontRight");
         backLeft  = hardwareMap.get(DcMotorEx.class, "backLeft");
         backRight = hardwareMap.get(DcMotorEx.class, "backRight");
-
+*/
         armVert = hardwareMap.get(DcMotorEx.class, "armVert");
         leftHand = hardwareMap.get(Servo.class, "left_hand");
 
         armVert.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         armVert.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        Pose2d startPose = new Pose2d(36, -64, Math.toRadians(0));
-        drive.setPoseEstimate(startPose);
-
+/*
         //Set up camera
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
@@ -126,7 +123,7 @@ public class RightCircuitAuto extends LinearOpMode
         /*
          * The INIT-loop:
          * This REPLACES waitForStart!
-         */
+
         while (!isStarted() && !isStopRequested()) {
             ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
 
@@ -190,6 +187,9 @@ public class RightCircuitAuto extends LinearOpMode
          * during the init loop.
          */
 
+        waitForStart();
+        if (isStopRequested()) return;
+
         Trajectory lowPole1 = drive.trajectoryBuilder(startPose)
                 .strafeLeft(40)
                 .build();
@@ -206,13 +206,49 @@ public class RightCircuitAuto extends LinearOpMode
                 .forward(25)
                 .build();
         Trajectory curveToMidGoal = drive.trajectoryBuilder(new Pose2d())
-                .lineToSplineHeading(new Pose2d(28.5,-11.5,Math.toRadians(-90)))
+                .lineToSplineHeading(new Pose2d(28.5, -11.5, Math.toRadians(-90)))
                 .build();
         Trajectory toMidGoal = drive.trajectoryBuilder(curveToMidGoal.end())
                 .forward(3)
                 .build();
 
-        /* Update the telemetry */
+
+        leftHand.setPosition(closePos);
+        sleep(600);
+        armVert.setTargetPosition(lowGoal);
+        armVert.setPower(0.8);
+        sleep(600);
+        drive.followTrajectory(lowPole1);
+        sleep(200);
+        drive.followTrajectory(lowPole2);
+        sleep(200);
+        leftHand.setPosition(openPos);
+        sleep(500);
+        drive.followTrajectory(lowPole3);
+        sleep(200);
+        drive.followTrajectory(strafeToCup);
+        sleep(200);
+        armVert.setTargetPosition(stackPickUp);
+        armVert.setPower(0.8);
+        sleep(500);
+        drive.followTrajectory(forwardToCup);
+        leftHand.setPosition(closePos);
+        sleep(600);
+        armVert.setTargetPosition(lowGoal);
+        armVert.setPower(0.8);
+        sleep(600);
+        drive.followTrajectory(curveToMidGoal);
+        sleep(500);
+        armVert.setTargetPosition(midGoal);
+        armVert.setPower(0.8);
+        sleep(600);
+        drive.followTrajectory(toMidGoal);
+        sleep(200);
+        leftHand.setPosition(openPos);
+        sleep(500);
+
+        sleep(2000);
+        /*
         if(tagOfInterest != null)
         {
             telemetry.addLine("Tag snapshot:\n");
@@ -225,7 +261,7 @@ public class RightCircuitAuto extends LinearOpMode
             telemetry.update();
         }
 
-        /* Actually do something useful */
+        /* Actually do something useful
         if(tagOfInterest == null || tagOfInterest.id == LEFT) {
             leftHand.setPosition(closePos);
             sleep(600);
@@ -271,8 +307,7 @@ public class RightCircuitAuto extends LinearOpMode
         }
 
 
-        /* You wouldn't have this in your autonomous, this is just to prevent the sample from ending */
-        //while (opModeIsActive()) {sleep(20);}
+
     }
 
     void tagToTelemetry(AprilTagDetection detection)
@@ -284,5 +319,7 @@ public class RightCircuitAuto extends LinearOpMode
         telemetry.addLine(String.format("Rotation Yaw: %.2f degrees", Math.toDegrees(detection.pose.yaw)));
         telemetry.addLine(String.format("Rotation Pitch: %.2f degrees", Math.toDegrees(detection.pose.pitch)));
         telemetry.addLine(String.format("Rotation Roll: %.2f degrees", Math.toDegrees(detection.pose.roll)));
+    }
+         */
     }
 }
