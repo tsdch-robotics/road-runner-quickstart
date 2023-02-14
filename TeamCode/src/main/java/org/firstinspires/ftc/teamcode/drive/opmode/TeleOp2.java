@@ -27,9 +27,9 @@ public class  TeleOp2 extends LinearOpMode {
     private Servo leftHand = null;
     private Servo rightHand = null;
 
-    final int highGoal = 4000;
-    final int medGoal = 2800;
-    final int lowGoal = 1300;
+    final int highGoal = 2000;
+    final int medGoal = 1400;
+    final int lowGoal = 750;
     double armPower = 0;
     private int most = 0;
 
@@ -133,13 +133,13 @@ public class  TeleOp2 extends LinearOpMode {
 */
             //set armvertpower
             if (gamepad1.right_trigger > 0) {
-                armPower = -0.55   ;
+                armPower = -0.05;
             }
             else if (gamepad1.left_trigger > 0) {
-                armPower = 0.95;
+                armPower = 0.85;
             }
             else {
-                armPower = 0.11;
+                armPower = 0.21;
             }
 
 
