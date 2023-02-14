@@ -24,10 +24,9 @@ import java.util.ArrayList;
 
 @Autonomous(group = "drive")
 public class RightCircuitAuto extends LinearOpMode {
-    SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
 
-    //OpenCvCamera camera;
-    //AprilTagDetectionPipeline aprilTagDetectionPipeline;
+    OpenCvCamera camera;
+    AprilTagDetectionPipeline aprilTagDetectionPipeline;
 
     static final double FEET_PER_METER = 3.28084;
 
@@ -67,12 +66,15 @@ public class RightCircuitAuto extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
     static final int pickup = 0;
     final int highGoal = 4000;
-    final int midGoal = 2800;
-    final int lowGoal = 1900;
-    final int stackPickUp = 600;
+    final int midGoal = 1400;
+    final int lowGoal = 950;
+    final int stackPickUp = 300;
 
     static final double openPos = 0.89;
     static final double closePos = 0.7;
+
+    static final double upSpeed = 0.85;
+    static final double downSpeed = -0.15;
 
     private enum Direction {left, right;}
 
@@ -81,7 +83,6 @@ public class RightCircuitAuto extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-
         Pose2d startPose = new Pose2d(36, -64, Math.toRadians(0));
         drive.setPoseEstimate(startPose);
         /*
@@ -96,82 +97,63 @@ public class RightCircuitAuto extends LinearOpMode {
         armVert.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
         armVert.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-/*
+
         //Set up camera
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         camera = OpenCvCameraFactory.getInstance().createWebcam(hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
         aprilTagDetectionPipeline = new AprilTagDetectionPipeline(tagsize, fx, fy, cx, cy);
 
         camera.setPipeline(aprilTagDetectionPipeline);
-        camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener()
-        {
+        camera.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
             @Override
-            public void onOpened()
-            {
-                camera.startStreaming(800,448, OpenCvCameraRotation.UPRIGHT);
+            public void onOpened() {
+                camera.startStreaming(800, 448, OpenCvCameraRotation.UPRIGHT);
             }
 
             @Override
-            public void onError(int errorCode)
-            {
+            public void onError(int errorCode) {
 
             }
         });
 
         telemetry.setMsTransmissionInterval(50);
 
-        /*
-         * The INIT-loop:
-         * This REPLACES waitForStart!
+        //init loop
 
         while (!isStarted() && !isStopRequested()) {
             ArrayList<AprilTagDetection> currentDetections = aprilTagDetectionPipeline.getLatestDetections();
 
-            if(currentDetections.size() != 0)
-            {
+            if (currentDetections.size() != 0) {
                 boolean tagFound = false;
 
-                for(AprilTagDetection tag : currentDetections)
-                {
-                    if(tag.id == LEFT || tag.id  == MIDDLE || tag.id == RIGHT)
-                    {
+                for (AprilTagDetection tag : currentDetections) {
+                    if (tag.id == LEFT || tag.id == MIDDLE || tag.id == RIGHT) {
                         tagOfInterest = tag;
                         tagFound = true;
                         break;
                     }
                 }
 
-                if(tagFound)
-                {
+                if (tagFound) {
                     telemetry.addLine("Tag of interest is in sight!\n\nLocation data:");
                     tagToTelemetry(tagOfInterest);
-                }
-                else
-                {
+                } else {
                     telemetry.addLine("Don't see tag of interest :(");
 
-                    if(tagOfInterest == null)
-                    {
+                    if (tagOfInterest == null) {
                         telemetry.addLine("(The tag has never been seen)");
-                    }
-                    else
-                    {
+                    } else {
                         telemetry.addLine("\nBut we HAVE seen the tag before; last seen at:");
                         tagToTelemetry(tagOfInterest);
                     }
                 }
 
-            }
-            else
-            {
+            } else {
                 telemetry.addLine("Don't see tag of interest :(");
 
-                if(tagOfInterest == null)
-                {
+                if (tagOfInterest == null) {
                     telemetry.addLine("(The tag has never been seen)");
-                }
-                else
-                {
+                } else {
                     telemetry.addLine("\nBut we HAVE seen the tag before; last seen at:");
                     tagToTelemetry(tagOfInterest);
                 }
@@ -206,63 +188,131 @@ public class RightCircuitAuto extends LinearOpMode {
                 .forward(25)
                 .build();
         Trajectory curveToMidGoal = drive.trajectoryBuilder(new Pose2d())
-                .lineToSplineHeading(new Pose2d(28.5, -11.5, Math.toRadians(-90)))
+                .lineToSplineHeading(new Pose2d(29, -11.5, Math.toRadians(-90)))
                 .build();
         Trajectory toMidGoal = drive.trajectoryBuilder(curveToMidGoal.end())
-                .forward(3)
+                .forward(2)
+                .build();
+        Trajectory backAfter = drive.trajectoryBuilder(toMidGoal.end())
+                .back(4)
+                .build();
+
+        //Case 1
+        Trajectory strafeToParkC1 = drive.trajectoryBuilder(backAfter.end())
+                .strafeRight(11)
+                .build();
+        Trajectory toParkC1 = drive.trajectoryBuilder(strafeToParkC1.end())
+                .forward(24)
+                .build();
+
+        //Case 2
+        Trajectory strafeToParkC2 = drive.trajectoryBuilder(backAfter.end())
+                .strafeLeft(11)
+                .build();
+        Trajectory toParkC2 = drive.trajectoryBuilder(strafeToParkC2.end())
+                .forward(24)
+                .build();
+
+        //Case 3
+        Trajectory strafeToParkC3 = drive.trajectoryBuilder(backAfter.end())
+                .strafeLeft(11)
+                .build();
+        Trajectory toSquareBefore = drive.trajectoryBuilder(strafeToParkC3.end())
+                .forward(24)
+                .build();
+        Trajectory finalStrafe = drive.trajectoryBuilder(toSquareBefore.end())
+                .strafeLeft(16)
                 .build();
 
 
-        leftHand.setPosition(closePos);
-        sleep(600);
-        armVert.setTargetPosition(lowGoal);
-        armVert.setPower(0.8);
-        sleep(600);
-        drive.followTrajectory(lowPole1);
-        sleep(200);
-        drive.followTrajectory(lowPole2);
-        sleep(200);
-        leftHand.setPosition(openPos);
-        sleep(500);
-        drive.followTrajectory(lowPole3);
-        sleep(200);
-        drive.followTrajectory(strafeToCup);
-        sleep(200);
-        armVert.setTargetPosition(stackPickUp);
-        armVert.setPower(0.8);
-        sleep(500);
-        drive.followTrajectory(forwardToCup);
-        leftHand.setPosition(closePos);
-        sleep(600);
-        armVert.setTargetPosition(lowGoal);
-        armVert.setPower(0.8);
-        sleep(600);
-        drive.followTrajectory(curveToMidGoal);
-        sleep(500);
-        armVert.setTargetPosition(midGoal);
-        armVert.setPower(0.8);
-        sleep(600);
-        drive.followTrajectory(toMidGoal);
-        sleep(200);
-        leftHand.setPosition(openPos);
-        sleep(500);
 
-        sleep(2000);
-        /*
-        if(tagOfInterest != null)
-        {
+        if (tagOfInterest != null) {
             telemetry.addLine("Tag snapshot:\n");
             tagToTelemetry(tagOfInterest);
             telemetry.update();
-        }
-        else
-        {
+        } else {
             telemetry.addLine("No tag snapshot available, it was never sighted during the init loop :(");
             telemetry.update();
         }
 
-        /* Actually do something useful
-        if(tagOfInterest == null || tagOfInterest.id == LEFT) {
+        //Actually do something useful
+        if (tagOfInterest == null || tagOfInterest.id == LEFT) {
+            leftHand.setPosition(closePos);
+            sleep(600);
+            armVert.setTargetPosition(lowGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(lowPole1);
+            sleep(200);
+            drive.followTrajectory(lowPole2);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(500);
+            drive.followTrajectory(lowPole3);
+            sleep(200);
+            drive.followTrajectory(strafeToCup);
+            sleep(200);
+            armVert.setTargetPosition(stackPickUp);
+            armVert.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup);
+            leftHand.setPosition(closePos);
+            sleep(600);
+            armVert.setTargetPosition(lowGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(curveToMidGoal);
+            sleep(500);
+            armVert.setTargetPosition(midGoal);
+            armVert.setPower(downSpeed);
+            sleep(600);
+            drive.followTrajectory(toMidGoal);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(500);
+            drive.followTrajectory(backAfter);
+            drive.followTrajectory(strafeToParkC1);
+            drive.followTrajectory(toParkC1);
+
+            sleep(2000);
+        } else if (tagOfInterest.id == MIDDLE) {
+            leftHand.setPosition(closePos);
+            sleep(600);
+            armVert.setTargetPosition(lowGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(lowPole1);
+            sleep(200);
+            drive.followTrajectory(lowPole2);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(500);
+            drive.followTrajectory(lowPole3);
+            sleep(200);
+            drive.followTrajectory(strafeToCup);
+            sleep(200);
+            armVert.setTargetPosition(stackPickUp);
+            armVert.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup);
+            leftHand.setPosition(closePos);
+            sleep(600);
+            armVert.setTargetPosition(lowGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(curveToMidGoal);
+            sleep(500);
+            armVert.setTargetPosition(midGoal);
+            armVert.setPower(0.8);
+            sleep(600);
+            drive.followTrajectory(toMidGoal);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(500);
+            drive.followTrajectory(backAfter);
+            drive.followTrajectory(strafeToParkC2);
+            drive.followTrajectory(toParkC2);
+        } else {
             leftHand.setPosition(closePos);
             sleep(600);
             armVert.setTargetPosition(lowGoal);
@@ -296,30 +346,22 @@ public class RightCircuitAuto extends LinearOpMode {
             sleep(200);
             leftHand.setPosition(openPos);
             sleep(500);
-
-            sleep(2000);
+            drive.followTrajectory(backAfter);
+            drive.followTrajectory(strafeToParkC3);
+            drive.followTrajectory(toSquareBefore);
+            drive.followTrajectory(finalStrafe);
         }
-        else if (tagOfInterest.id == MIDDLE) {
-            //code
-        }
-        else {
-            //code
-        }
-
 
 
     }
 
-    void tagToTelemetry(AprilTagDetection detection)
-    {
+    void tagToTelemetry(AprilTagDetection detection) {
         telemetry.addLine(String.format("\nDetected tag ID=%d", detection.id));
-        telemetry.addLine(String.format("Translation X: %.2f feet", detection.pose.x*FEET_PER_METER));
-        telemetry.addLine(String.format("Translation Y: %.2f feet", detection.pose.y*FEET_PER_METER));
-        telemetry.addLine(String.format("Translation Z: %.2f feet", detection.pose.z*FEET_PER_METER));
+        telemetry.addLine(String.format("Translation X: %.2f feet", detection.pose.x * FEET_PER_METER));
+        telemetry.addLine(String.format("Translation Y: %.2f feet", detection.pose.y * FEET_PER_METER));
+        telemetry.addLine(String.format("Translation Z: %.2f feet", detection.pose.z * FEET_PER_METER));
         telemetry.addLine(String.format("Rotation Yaw: %.2f degrees", Math.toDegrees(detection.pose.yaw)));
         telemetry.addLine(String.format("Rotation Pitch: %.2f degrees", Math.toDegrees(detection.pose.pitch)));
         telemetry.addLine(String.format("Rotation Roll: %.2f degrees", Math.toDegrees(detection.pose.roll)));
-    }
-         */
     }
 }
