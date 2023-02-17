@@ -16,6 +16,16 @@ public class  TeleOp2 extends LinearOpMode {
 
     FtcDashboard dashboard;
 
+    //lift state
+    public enum LiftState {
+        ENCODER,
+        MANUAL
+    };
+
+    // The liftState variable is declared out here
+    // so its value persists between loop() calls
+    LiftState liftState = LiftState.ENCODER;
+
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotorEx frontLeft = null;
@@ -27,13 +37,16 @@ public class  TeleOp2 extends LinearOpMode {
     private Servo leftHand = null;
     private Servo rightHand = null;
 
-    final int highGoal = 2000;
-    final int medGoal = 1400;
-    final int lowGoal = 750;
+    final int highGoal = 980;
+    final int midGoal = 710;
+    final int lowGoal = 440;
+    final int pickup = 110;
+    static final double upSpeed = 0.85;
+    static final double downSpeed = -0.2;
     double armPower = 0;
     private int most = 0;
 
-    double minposL = 0.4, maxposL = 0.73, minposR = 0.72, maxposR = 0.95;
+    double minposL = 0.4, maxposL = 0.73, minposR = 0.65, maxposR = 0.85;
 
     double gripposL = 0.7, gripposR = 0.65;
     double adjustedPos = maxposR;
@@ -66,9 +79,6 @@ public class  TeleOp2 extends LinearOpMode {
         backRight.setDirection(DcMotorEx.Direction.FORWARD);
 
         armVert.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        //armVert.setDirection(DcMotorEx.Direction.REVERSE);
-
-        //armVert.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
 
 
         // Wait for the game to start (driver presses PLAY)
@@ -91,8 +101,6 @@ public class  TeleOp2 extends LinearOpMode {
             double backLeftPower = (drive + turn - strafe) / denom;
             double backRightPower = (drive - turn + strafe) / denom;
 
-            //leftPower  = gamepad1.left_stick_y ;
-            //rightPower = gamepad1.right_stick_y ;
 /*
             if (gamepad1.a) {
                 armVert.setTargetPosition(lowGoal);
@@ -131,16 +139,75 @@ public class  TeleOp2 extends LinearOpMode {
                 }
             }
 */
+
+            switch (liftState) {
+                case ENCODER:
+                    armVert.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+                    if (gamepad1.a) {
+                        armVert.setTargetPosition(lowGoal);
+                        armVert.setPower(upSpeed);
+
+                    }
+                    if (gamepad1.b) {
+                        armVert.setTargetPosition(midGoal);
+                        if (armVert.getCurrentPosition() > midGoal) {
+                            armVert.setTargetPosition(midGoal);
+                            armVert.setPower(downSpeed);
+                        }
+                        if (armVert.getCurrentPosition() < midGoal) {
+                            armVert.setTargetPosition(lowGoal);
+                            armVert.setPower(upSpeed);
+                        }
+                    }
+                    if (gamepad1.y) {
+                        armVert.setTargetPosition(highGoal);
+                        if (armVert.getCurrentPosition() > highGoal) {
+                            armVert.setTargetPosition(highGoal);
+                            armVert.setPower(downSpeed);
+                        }
+                        if (armVert.getCurrentPosition() < highGoal) {
+                            armVert.setTargetPosition(highGoal);
+                            armVert.setPower(upSpeed);
+                        }
+                    }
+                    if (gamepad1.right_stick_button) {
+                        armVert.setTargetPosition(pickup);
+                        if (armVert.getCurrentPosition() > pickup) {
+                            armVert.setTargetPosition(pickup);
+                            armVert.setPower(downSpeed);
+                        }
+                        if (armVert.getCurrentPosition() < pickup) {
+                            armVert.setTargetPosition(pickup);
+                            armVert.setPower(upSpeed);
+                        }
+                    }
+
+                    if (gamepad1.dpad_right) {
+                        liftState = LiftState.MANUAL;
+                    }
+                    break;
+                case MANUAL:
+                    armVert.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+                        if (gamepad1.right_trigger > 0) {
+                            armPower = -0.3;
+                        }
+                        else if (gamepad1.left_trigger > 0) {
+                            armPower = 0.85;
+                        }
+                        else {
+                            armPower = 0.03;
+                        }
+
+                        if (gamepad1.dpad_left) {
+                            liftState = LiftState.ENCODER;
+                        }
+
+                    armVert.setPower(armPower);
+                    }
+
+
+
             //set armvertpower
-            if (gamepad1.right_trigger > 0) {
-                armPower = -0.05;
-            }
-            else if (gamepad1.left_trigger > 0) {
-                armPower = 0.85;
-            }
-            else {
-                armPower = 0.21;
-            }
 
 
             //open the gripper on X button if not already at most open position.
@@ -155,7 +222,6 @@ public class  TeleOp2 extends LinearOpMode {
             backLeft.setPower(backLeftPower);
             backRight.setPower(backRightPower);
 
-            armVert.setPower(armPower);
 
             leftHand.setPosition(gripposR);
 
