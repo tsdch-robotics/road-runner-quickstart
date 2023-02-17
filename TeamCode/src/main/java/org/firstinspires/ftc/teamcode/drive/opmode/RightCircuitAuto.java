@@ -65,16 +65,16 @@ public class RightCircuitAuto extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
     static final int pickup = 0;
-    final int highGoal = 800;
-    final int midGoal = 790;
-    final int lowGoal = 500;
-    final int stackPickUp = 140;
+    final int highGoal = 1150;
+    final int midGoal = 760;
+    final int lowGoal = 440;
+    final int stackPickUp = 130;
 
-    static final double openPos = 0.89;
-    static final double closePos = 0.7;
+    static final double openPos = 0.85;
+    static final double closePos = 0.65;
 
     static final double upSpeed = 0.85;
-    static final double downSpeed = -0.15;
+    static final double downSpeed = -0.2;
 
     private enum Direction {left, right;}
 
@@ -176,59 +176,68 @@ public class RightCircuitAuto extends LinearOpMode {
                 .strafeLeft(40)
                 .build();
         Trajectory lowPole2 = drive.trajectoryBuilder(lowPole1.end())
-                .forward(3.7)
+                .forward(3.4)
                 .build();
         Trajectory lowPole3 = drive.trajectoryBuilder(lowPole2.end())
-                .back(3.7)
+                .back(3.4)
                 .build();
         Trajectory strafeToCup = drive.trajectoryBuilder(lowPole3.end())
                 .strafeLeft(13.5)
                 .build();
         Trajectory forwardToCup = drive.trajectoryBuilder(strafeToCup.end())
-                .forward(24.6)
+                .forward(24.5)
                 .build();
         Trajectory curveToMidGoal = drive.trajectoryBuilder(new Pose2d())
-                .lineToSplineHeading(new Pose2d(29, -11.5, Math.toRadians(-90)))
+                .lineToSplineHeading(new Pose2d(28.5, -12, Math.toRadians(-90)))
                 .build();
         Trajectory toMidGoal = drive.trajectoryBuilder(curveToMidGoal.end())
-                .forward(2)
+                .forward(1.7)
                 .build();
         Trajectory backAfter = drive.trajectoryBuilder(toMidGoal.end())
-                .back(3)
+                .back(1.7)
                 .build();
         Trajectory turnAfter = drive.trajectoryBuilder(backAfter.end())
                 .lineToSplineHeading(new Pose2d(50, -9.5, Math.toRadians(0)))
                 .build();
         Trajectory forwardToCup2 = drive.trajectoryBuilder(turnAfter.end())
-                .forward(14)
+                .forward(16.5)
                 .build();
         Trajectory curveToHighGoal = drive.trajectoryBuilder(new Pose2d())
-                .lineToSplineHeading(new Pose2d(29, -11.5, Math.toRadians(-90)))
+                .lineToSplineHeading(new Pose2d(24, -11, Math.toRadians(-90)))
+                .build();
+        Trajectory strafeToHighGoal = drive.trajectoryBuilder(curveToHighGoal.end())
+                .strafeRight(14)
+                .build();
+        Trajectory toHighGoal = drive.trajectoryBuilder(strafeToHighGoal.end())
+                .forward(3)
+                .build();
+        Trajectory backHighGoal = drive.trajectoryBuilder(toHighGoal.end())
+                .back(3)
                 .build();
 
 
         //Case 1
-        Trajectory strafeToParkC1 = drive.trajectoryBuilder(backAfter.end())
-                .strafeRight(11)
+        Trajectory strafeToParkC1 = drive.trajectoryBuilder(backHighGoal.end())
+                .strafeLeft(14)
                 .build();
         Trajectory toParkC1 = drive.trajectoryBuilder(strafeToParkC1.end())
-                .forward(24)
+                .forward(22)
                 .build();
 
         //Case 2
         Trajectory strafeToParkC2 = drive.trajectoryBuilder(backAfter.end())
-                .strafeLeft(11)
+                .strafeLeft(22)
                 .build();
         Trajectory toParkC2 = drive.trajectoryBuilder(strafeToParkC2.end())
-                .forward(24)
+                .forward(22)
                 .build();
 
         //Case 3
         Trajectory strafeToParkC3 = drive.trajectoryBuilder(backAfter.end())
-                .strafeLeft(11)
+                .strafeLeft(22)
                 .build();
         Trajectory toSquareBefore = drive.trajectoryBuilder(strafeToParkC3.end())
-                .forward(24)
+                .forward(22)
                 .build();
         Trajectory finalStrafe = drive.trajectoryBuilder(toSquareBefore.end())
                 .strafeLeft(16)
@@ -247,19 +256,22 @@ public class RightCircuitAuto extends LinearOpMode {
 
         //Actually do something useful
         if (tagOfInterest == null || tagOfInterest.id == LEFT) {
+            //score on low
             leftHand.setPosition(closePos);
             sleep(700);
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(300);
             drive.followTrajectory(lowPole1);
-            sleep(200);
+            sleep(100);
             drive.followTrajectory(lowPole2);
-            sleep(200);
+            sleep(100);
             leftHand.setPosition(openPos);
-            sleep(400);
-            drive.followTrajectory(lowPole3);
             sleep(200);
+            drive.followTrajectory(lowPole3);
+            sleep(50);
+
+            //go to stack and pick up
             drive.followTrajectory(strafeToCup);
             sleep(200);
             armVert.setTargetPosition(stackPickUp);
@@ -271,18 +283,24 @@ public class RightCircuitAuto extends LinearOpMode {
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(600);
+
+            //go to mid goal and score
             drive.followTrajectory(curveToMidGoal);
             sleep(500);
             armVert.setTargetPosition(midGoal);
-            armVert.setPower(downSpeed);
+            armVert.setPower(upSpeed);
             sleep(600);
             drive.followTrajectory(toMidGoal);
             sleep(200);
             leftHand.setPosition(openPos);
             sleep(500);
+
+            //back to stack and pick up
             drive.followTrajectory(backAfter);
+            armVert.setTargetPosition(stackPickUp - 30);
+            armVert.setPower(downSpeed);
+            sleep(200);
             drive.followTrajectory(turnAfter);
-            armVert.setTargetPosition(stackPickUp);
             armVert.setPower(downSpeed);
             sleep(500);
             drive.followTrajectory(forwardToCup2);
@@ -291,25 +309,45 @@ public class RightCircuitAuto extends LinearOpMode {
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(600);
+
+            //to high goal and score
             drive.followTrajectory(curveToHighGoal);
-            //drive.followTrajectory(strafeToParkC1);
-            //drive.followTrajectory(toParkC1);
+            drive.followTrajectory(strafeToHighGoal);
+            armVert.setTargetPosition(highGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(toHighGoal);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(300);
+
+            //arm down and park
+            drive.followTrajectory(backHighGoal);
+            sleep(400);
+            armVert.setTargetPosition(stackPickUp - 60);
+            armVert.setPower(downSpeed);
+            sleep(700);
+            drive.followTrajectory(strafeToParkC1);
+            drive.followTrajectory(toParkC1);
 
             sleep(2000);
         } else if (tagOfInterest.id == MIDDLE) {
+            //score on low
             leftHand.setPosition(closePos);
             sleep(700);
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(300);
             drive.followTrajectory(lowPole1);
-            sleep(200);
+            sleep(100);
             drive.followTrajectory(lowPole2);
-            sleep(200);
+            sleep(100);
             leftHand.setPosition(openPos);
-            sleep(400);
-            drive.followTrajectory(lowPole3);
             sleep(200);
+            drive.followTrajectory(lowPole3);
+            sleep(50);
+
+            //go to stack and pick up
             drive.followTrajectory(strafeToCup);
             sleep(200);
             armVert.setTargetPosition(stackPickUp);
@@ -321,32 +359,69 @@ public class RightCircuitAuto extends LinearOpMode {
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(600);
+
+            //go to mid goal and score
             drive.followTrajectory(curveToMidGoal);
             sleep(500);
             armVert.setTargetPosition(midGoal);
-            armVert.setPower(downSpeed);
+            armVert.setPower(upSpeed);
             sleep(600);
             drive.followTrajectory(toMidGoal);
             sleep(200);
             leftHand.setPosition(openPos);
             sleep(500);
+
+            //back to stack and pick up
             drive.followTrajectory(backAfter);
+            armVert.setTargetPosition(stackPickUp - 30);
+            armVert.setPower(downSpeed);
+            sleep(200);
+            drive.followTrajectory(turnAfter);
+            armVert.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup2);
+            leftHand.setPosition(closePos);
+            sleep(400);
+            armVert.setTargetPosition(lowGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+
+            //to high goal and score
+            drive.followTrajectory(curveToHighGoal);
+            drive.followTrajectory(strafeToHighGoal);
+            armVert.setTargetPosition(highGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(toHighGoal);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(300);
+
+            //arm down and park
+            drive.followTrajectory(backHighGoal);
+            sleep(400);
+            armVert.setTargetPosition(stackPickUp - 60);
+            armVert.setPower(downSpeed);
+            sleep(700);
             drive.followTrajectory(strafeToParkC2);
             drive.followTrajectory(toParkC2);
         } else {
+            //score on low
             leftHand.setPosition(closePos);
             sleep(700);
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(300);
             drive.followTrajectory(lowPole1);
-            sleep(200);
+            sleep(100);
             drive.followTrajectory(lowPole2);
-            sleep(200);
+            sleep(100);
             leftHand.setPosition(openPos);
-            sleep(400);
-            drive.followTrajectory(lowPole3);
             sleep(200);
+            drive.followTrajectory(lowPole3);
+            sleep(50);
+
+            //go to stack and pick up
             drive.followTrajectory(strafeToCup);
             sleep(200);
             armVert.setTargetPosition(stackPickUp);
@@ -358,16 +433,50 @@ public class RightCircuitAuto extends LinearOpMode {
             armVert.setTargetPosition(lowGoal);
             armVert.setPower(upSpeed);
             sleep(600);
+
+            //go to mid goal and score
             drive.followTrajectory(curveToMidGoal);
             sleep(500);
             armVert.setTargetPosition(midGoal);
-            armVert.setPower(downSpeed);
+            armVert.setPower(upSpeed);
             sleep(600);
             drive.followTrajectory(toMidGoal);
             sleep(200);
             leftHand.setPosition(openPos);
             sleep(500);
+
+            //back to stack and pick up
             drive.followTrajectory(backAfter);
+            armVert.setTargetPosition(stackPickUp - 30);
+            armVert.setPower(downSpeed);
+            sleep(200);
+            drive.followTrajectory(turnAfter);
+            armVert.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup2);
+            leftHand.setPosition(closePos);
+            sleep(400);
+            armVert.setTargetPosition(lowGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+
+            //to high goal and score
+            drive.followTrajectory(curveToHighGoal);
+            drive.followTrajectory(strafeToHighGoal);
+            armVert.setTargetPosition(highGoal);
+            armVert.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(toHighGoal);
+            sleep(200);
+            leftHand.setPosition(openPos);
+            sleep(300);
+
+            //arm down and park
+            drive.followTrajectory(backHighGoal);
+            sleep(400);
+            armVert.setTargetPosition(stackPickUp - 60);
+            armVert.setPower(downSpeed);
+            sleep(700);
             drive.followTrajectory(strafeToParkC3);
             drive.followTrajectory(toSquareBefore);
             drive.followTrajectory(finalStrafe);
