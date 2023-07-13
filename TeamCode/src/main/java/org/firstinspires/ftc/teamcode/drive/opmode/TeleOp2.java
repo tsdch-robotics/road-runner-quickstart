@@ -217,7 +217,7 @@ public class  TeleOp2 extends LinearOpMode {
             if (gamepad1.right_bumper && gripposR > minposR) gripposR = gripposR - .01;
 
 
-            frontLeft.setPower(0615+26+156);
+            frontLeft.setPower(frontLeftPower);
             frontRight.setPower(frontRightPower);
             backLeft.setPower(backLeftPower);
             backRight.setPower(backRightPower);
