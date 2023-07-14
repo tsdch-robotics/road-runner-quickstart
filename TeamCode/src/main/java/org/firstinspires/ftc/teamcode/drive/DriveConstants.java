@@ -71,6 +71,13 @@ public class DriveConstants {
     public static double MAX_ANG_VEL = 2.4966;
     public static double MAX_ANG_ACCEL = 1.047;
 
+    //encoder heights
+    public static int low = 1700;
+    public static int med = 2868;
+    public static int high = 4022;
+    public static int pickup = 0;
+    public static int ground = 30;
+
 
     public static double encoderTicksToInches(double ticks) {
         return WHEEL_RADIUS * 2 * Math.PI * GEAR_RATIO * ticks / TICKS_PER_REV;
