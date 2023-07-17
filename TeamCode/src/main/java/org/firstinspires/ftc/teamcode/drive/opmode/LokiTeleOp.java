@@ -61,17 +61,19 @@ public class LokiTeleOp extends LinearOpMode {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
+
         waitForStart();        runtime.reset();
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
+
             if (gamepad1.left_bumper){
-                Intake.setPosition(0.1);
+                Intake.setPosition(.16);
             }
 
             if (gamepad1.right_bumper){
-                Intake.setPosition(0.23);
+                Intake.setPosition(.4);
             }
 
             telemetry.addData("LinearSlideHeight", armMotor.getCurrentPosition());
@@ -80,46 +82,48 @@ public class LokiTeleOp extends LinearOpMode {
 
 
 
+
+
             if (gamepad1.a){
                 armMotor.setTargetPosition(pickup);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                armMotor.setPower(.6);
-            }
-
-            if (gamepad1.b){
-                armMotor.setTargetPosition(low);
-                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                armMotor.setPower(.6);
+                armMotor.setPower(1);
             }
 
             if (gamepad1.x){
-                armMotor.setTargetPosition(med);
+                armMotor.setTargetPosition(low);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                armMotor.setPower(.6);
+                armMotor.setPower(1);
             }
 
             if (gamepad1.y){
-                armMotor.setTargetPosition(ground);
+                armMotor.setTargetPosition(med);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                armMotor.setPower(.6);
+                armMotor.setPower(1);
             }
 
-            if (gamepad1.right_trigger > 0){
+            if (gamepad1.b){
                 armMotor.setTargetPosition(high);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                armMotor.setPower(.6);
+                armMotor.setPower(1);
+            }
+
+            if (gamepad1.left_trigger > 0){
+                armMotor.setTargetPosition(ground);
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                armMotor.setPower(1);
             }
 
             double max;
 
-            double drive = gamepad1.left_stick_y;
-            double turn  =  0.7 * -gamepad1.right_stick_x;
-            double strafe = -gamepad1.left_stick_x;
+            double drive = gamepad1.right_stick_y;
+            double turn  =  0.7 * -gamepad1.left_stick_x;
+            double strafe = -gamepad1.right_stick_x;
 
             double denom = Math.max(Math.abs(drive) + Math.abs(turn) + Math.abs(strafe), 1);
             double frontLeftPower = (drive + turn + strafe) / denom;
@@ -130,6 +134,13 @@ public class LokiTeleOp extends LinearOpMode {
             rightFrontDrive.setPower(frontRightPower);
             leftBackDrive.setPower(backLeftPower);
             rightBackDrive.setPower(backRightPower);
+
+            if(gamepad1.dpad_down){
+                leftFrontDrive.setPower(frontLeftPower * .5);
+                rightFrontDrive.setPower(frontRightPower* .5);
+                leftBackDrive.setPower(backLeftPower* .5);
+                rightBackDrive.setPower(backRightPower* .5);
+            }
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
