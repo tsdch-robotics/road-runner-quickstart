@@ -73,7 +73,7 @@ public class DriveConstants {
 
     //encoder heights
     public static int low = 1700;
-    public static int med = 2868;
+    public static int med = 2900;
     public static int high = 4022;
     public static int pickup = 0;
     public static int ground = 30;
