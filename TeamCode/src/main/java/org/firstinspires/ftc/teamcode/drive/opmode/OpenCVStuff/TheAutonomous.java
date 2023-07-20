@@ -45,8 +45,7 @@ import org.openftc.easyopencv.OpenCvCameraRotation;
 import java.util.ArrayList;
 
 @Autonomous
-public class TheAutonomous extends LinearOpMode
-{
+public class TheAutonomous extends LinearOpMode {
     OpenCvCamera camera;
     AprilTagDetectionPipeline aprilTagDetectionPipeline;
 
@@ -68,6 +67,12 @@ public class TheAutonomous extends LinearOpMode
     private int high = DriveConstants.high;
     private int pickup = DriveConstants.pickup;
     private int ground = DriveConstants.ground;
+    private int stack1 = 650;
+
+    private double closePos = 0.4;
+    private double openPos = 0.28;
+    static final double upSpeed = 0.9;
+    static final double downSpeed = -0.3;
 
 
 
@@ -97,10 +102,12 @@ public class TheAutonomous extends LinearOpMode
     AprilTagDetection tagOfInterest = null;
 
     @Override
-    public void runOpMode()
+    public void runOpMode ()
     {
 
         SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+        Pose2d startPose = new Pose2d(36, -64, Math.toRadians(0));
+        drive.setPoseEstimate(startPose);
 
         // Retrieve the needed information about each motor from the configuration.
         FL  = hardwareMap.get(DcMotor.class, "frontLeft");
@@ -109,35 +116,34 @@ public class TheAutonomous extends LinearOpMode
         BR = hardwareMap.get(DcMotor.class, "backRight");
         armMotor = hardwareMap.get(DcMotor.class, "armVert");
 
-        FL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        FL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        FL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //FL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 
-        FR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        FR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        FR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //FR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 
-        BL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        BL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        BL.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //BL.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 
-        BR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        BR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        BR.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //BR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         Intake = hardwareMap.servo.get("Intake");
 
 
-        FL.setDirection(DcMotor.Direction.REVERSE);
-        BL.setDirection(DcMotor.Direction.REVERSE);
+        //FL.setDirection(DcMotor.Direction.REVERSE);
+        //BL.setDirection(DcMotor.Direction.REVERSE);
         //rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         //rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
 
-        armMotor.setDirection(DcMotor.Direction.FORWARD);
-
+        //armMotor.setDirection(DcMotor.Direction.FORWARD);
+        //armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
+        armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
 
@@ -228,6 +234,51 @@ public class TheAutonomous extends LinearOpMode
          * during the init loop.
          */
 
+        waitForStart();
+        if (isStopRequested()) return;
+
+        Trajectory lowPole1 = drive.trajectoryBuilder(startPose)
+                .strafeLeft(41.2)
+                .build();
+        Trajectory lowPole2 = drive.trajectoryBuilder(lowPole1.end())
+                .forward(5)
+                .build();
+        Trajectory lowPole3 = drive.trajectoryBuilder(lowPole2.end())
+                .back(5)
+                .build();
+        Trajectory strafeToCup = drive.trajectoryBuilder(lowPole3.end())
+                .strafeLeft(9.5)
+                .build();
+        Trajectory forwardToCup = drive.trajectoryBuilder(strafeToCup.end())
+                .forward(27.5)
+                .build();
+        Trajectory backFromCup = drive.trajectoryBuilder(forwardToCup.end())
+                .back(27.5)
+                .build();
+        //turn
+        Trajectory toMidGoal = drive.trajectoryBuilder(new Pose2d(39,-12, Math.toRadians(-135)))
+                .forward(12)
+                .build();
+        Trajectory backAfter = drive.trajectoryBuilder(toMidGoal.end())
+                .back(12)
+                .build();
+        //turn to park
+        Trajectory forwardToPark = drive.trajectoryBuilder(new Pose2d(39,-12, Math.toRadians(-90)))
+                .forward(24)
+                .build();
+
+        //Case 1
+        Trajectory strafeP1 = drive.trajectoryBuilder(forwardToPark.end())
+                .strafeRight(28)
+                .build();
+        //Case 2
+
+        //Case 3
+        Trajectory strafeP3 = drive.trajectoryBuilder(forwardToPark.end())
+                .strafeLeft(24)
+                .build();
+
+
         /* Update the telemetry */
 
 
@@ -242,6 +293,8 @@ public class TheAutonomous extends LinearOpMode
             telemetry.addLine("No tag snapshot available, it was never sighted during the init loop :(");
             telemetry.update();
         }*/
+
+
 
         // BEGIN PROGRAMMING TAG-DEPENDENT INSTRUCTIONS
         int PARK = 0;
@@ -272,26 +325,164 @@ public class TheAutonomous extends LinearOpMode
 
 
         if(PARK == 1){
+            Intake.setPosition(closePos);
+            sleep(700);
+            armMotor.setTargetPosition(ground);
+            armMotor.setPower(upSpeed);
+            sleep(300);
+            drive.followTrajectory(lowPole1);
+            sleep(100);
+            armMotor.setTargetPosition(low);
+            sleep(300);
+            drive.followTrajectory(lowPole2);
+            sleep(100);
+            Intake.setPosition(openPos);
+            sleep(200);
+            drive.followTrajectory(lowPole3);
+            sleep(50);
 
-//FIrst parking zone
+            //go to stack and pick up
+            drive.followTrajectory(strafeToCup);
+            sleep(200);
+            armMotor.setTargetPosition(stack1);
+            armMotor.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup);
+            Intake.setPosition(closePos);
+            sleep(400);
+            armMotor.setTargetPosition(med);
+            armMotor.setPower(upSpeed);
+            sleep(600);
 
+            //go to mid goal and score
+            drive.followTrajectory(backFromCup);
+            sleep(500);
+            drive.turn(Math.toRadians(-135));
+            armMotor.setTargetPosition(med);
+            armMotor.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(toMidGoal);
+            sleep(200);
+            Intake.setPosition(openPos);
+            sleep(500);
 
-
-
-            sleep(3000);
+            //back to park
+            drive.followTrajectory(backAfter);
+            armMotor.setTargetPosition(ground);
+            armMotor.setPower(downSpeed);
+            sleep(200);
+            drive.turn(Math.toRadians(45));
+            sleep(200);
+            drive.followTrajectory(forwardToPark);
+            sleep(600);
+            drive.followTrajectory(strafeP1);
         }
 
         if(PARK == 2){
+            Intake.setPosition(closePos);
+            sleep(700);
+            armMotor.setTargetPosition(ground);
+            armMotor.setPower(upSpeed);
+            sleep(300);
+            drive.followTrajectory(lowPole1);
+            sleep(100);
+            armMotor.setTargetPosition(low);
+            sleep(300);
+            drive.followTrajectory(lowPole2);
+            sleep(100);
+            Intake.setPosition(openPos);
+            sleep(200);
+            drive.followTrajectory(lowPole3);
+            sleep(50);
 
-//2nd parking zone
+            //go to stack and pick up
+            drive.followTrajectory(strafeToCup);
+            sleep(200);
+            armMotor.setTargetPosition(stack1);
+            armMotor.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup);
+            Intake.setPosition(closePos);
+            sleep(400);
+            armMotor.setTargetPosition(med);
+            armMotor.setPower(upSpeed);
+            sleep(600);
 
+            //go to mid goal and score
+            drive.followTrajectory(backFromCup);
+            sleep(500);
+            drive.turn(Math.toRadians(-135));
+            armMotor.setTargetPosition(med);
+            armMotor.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(toMidGoal);
+            sleep(200);
+            Intake.setPosition(openPos);
+            sleep(500);
+
+            //back to park
+            drive.followTrajectory(backAfter);
+            armMotor.setTargetPosition(ground);
+            armMotor.setPower(downSpeed);
+            sleep(200);
+            drive.turn(Math.toRadians(45));
+            sleep(200);
+            drive.followTrajectory(forwardToPark);
+            sleep(600);
 
         }
         if(PARK == 3){
+            Intake.setPosition(closePos);
+            sleep(700);
+            armMotor.setTargetPosition(ground);
+            armMotor.setPower(upSpeed);
+            sleep(300);
+            drive.followTrajectory(lowPole1);
+            sleep(100);
+            armMotor.setTargetPosition(low);
+            sleep(300);
+            drive.followTrajectory(lowPole2);
+            sleep(100);
+            Intake.setPosition(openPos);
+            sleep(200);
+            drive.followTrajectory(lowPole3);
+            sleep(50);
 
-//THIRD PARKING ZONE
+            //go to stack and pick up
+            drive.followTrajectory(strafeToCup);
+            sleep(200);
+            armMotor.setTargetPosition(stack1);
+            armMotor.setPower(downSpeed);
+            sleep(500);
+            drive.followTrajectory(forwardToCup);
+            Intake.setPosition(closePos);
+            sleep(400);
+            armMotor.setTargetPosition(med);
+            armMotor.setPower(upSpeed);
+            sleep(600);
 
+            //go to mid goal and score
+            drive.followTrajectory(backFromCup);
+            sleep(500);
+            drive.turn(Math.toRadians(-135));
+            armMotor.setTargetPosition(med);
+            armMotor.setPower(upSpeed);
+            sleep(600);
+            drive.followTrajectory(toMidGoal);
+            sleep(200);
+            Intake.setPosition(openPos);
+            sleep(500);
 
+            //back to park
+            drive.followTrajectory(backAfter);
+            armMotor.setTargetPosition(ground);
+            armMotor.setPower(downSpeed);
+            sleep(200);
+            drive.turn(Math.toRadians(45));
+            sleep(200);
+            drive.followTrajectory(forwardToPark);
+            sleep(600);
+            drive.followTrajectory(strafeP3);
         }
 
 
